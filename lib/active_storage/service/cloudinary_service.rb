@@ -28,6 +28,7 @@ module ActiveStorage
       instrument :upload, key: key, checksum: checksum do
         begin
           extra_headers = checksum.nil? ? {} : {Headers::CONTENT_MD5 => checksum}
+          io = handle_string_io_as_file(io, filename)
           options = @options.merge(options)
           Cloudinary::Uploader.upload(
             io,
@@ -203,6 +204,15 @@ module ActiveStorage
       options = key.respond_to?(:attributes) ? key.attributes : {}
       content_type = options[:content_type] || (io.nil? ? '' : Marcel::MimeType.for(io))
       content_type_to_resource_type(content_type)
+    end
+
+    def handle_string_io_as_file(io, filename)
+      return io unless io.class == StringIO
+
+      file = Tempfile.new(["temp",".png"], encoding: 'ascii-8bit')
+      file.binmode
+      file.write io.read
+      file.open
     end
   end
 end
